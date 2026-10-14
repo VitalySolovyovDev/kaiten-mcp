@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { KaitenError } from './errors.js';
 
 export interface Config {
@@ -9,6 +11,8 @@ export interface Config {
   maxTextChars: number;
   allowHttp: boolean;
   attachmentAllowedHosts: string[];
+  cacheTtlMs: number;
+  downloadDir: string;
 }
 
 function positive(env: NodeJS.ProcessEnv, key: string, fallback: number): number {
@@ -36,11 +40,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     catch { throw new KaitenError('CONFIG_INVALID', 'Cannot read KAITEN_API_TOKEN_FILE. Check its path and permissions.'); }
   }
   if (!token || /[\s\x00-\x1f\x7f]/.test(token)) throw new KaitenError('CONFIG_INVALID', 'Provide a non-empty API token without whitespace.');
+  const cacheTtlMs = env.KAITEN_CACHE_TTL_MS === undefined ? 60_000 : Number(env.KAITEN_CACHE_TTL_MS);
+  if (!Number.isSafeInteger(cacheTtlMs) || cacheTtlMs < 0) throw new KaitenError('CONFIG_INVALID', 'KAITEN_CACHE_TTL_MS must be a non-negative integer.');
+  if (env.KAITEN_DOWNLOAD_DIR === '') throw new KaitenError('CONFIG_INVALID', 'KAITEN_DOWNLOAD_DIR must not be empty.');
+  const maxTextChars = positive(env, 'KAITEN_MAX_TEXT_CHARS', 20_000);
+  if (maxTextChars < 2) throw new KaitenError('CONFIG_INVALID', 'KAITEN_MAX_TEXT_CHARS must be at least 2 to preserve Unicode characters.');
   return {
     baseUrl, token, allowHttp,
+    cacheTtlMs, downloadDir: resolve(env.KAITEN_DOWNLOAD_DIR ?? resolve(tmpdir(), 'kaiten-mcp-tools')),
     timeoutMs: positive(env, 'KAITEN_TIMEOUT_MS', 30_000),
     maxFileBytes: positive(env, 'KAITEN_MAX_FILE_BYTES', 20 * 1024 * 1024),
-    maxTextChars: positive(env, 'KAITEN_MAX_TEXT_CHARS', 20_000),
+    maxTextChars,
     attachmentAllowedHosts: (env.KAITEN_ATTACHMENT_ALLOWED_HOSTS ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
   };
 }

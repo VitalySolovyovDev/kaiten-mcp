@@ -1,19 +1,46 @@
-# Validation — 0.1.0
+# Проверка Kaiten MCP Tools 0.1.0
 
-Validated on 2026-10-14, Windows, Node.js 22.15.0.
+Релиз предоставляет 34 инструмента чтения и оригиналы файлов без встроенного извлечения содержимого. Production-зависимости: официальный MCP SDK и Zod; Node.js 22.15+.
 
-Local `npm run check`: 76 tests passed across four suites.
+## Автоматические проверки
 
-- Unit/integration checks exercise configuration, corporate domains/path prefixes, URL validation, HTTP authorization, pagination and errors.
-- Generated fixtures cover UTF-8 text, Markdown, CSV, JSON, PNG, JPEG, WebP, GIF, TIFF, PDF, DOCX, XLSX and PPTX.
-- Document tests check tables, cached formulas, pages/slides, continuation, empty PDF pages, malformed files and encrypted/excessive Office archive detection.
-- Protocol checks use both in-memory MCP transport and a real stdio child process, including image content and original binary resources.
-- A user-provided live card was read through the stdio server. Its title, all 3,204 description characters and both comments (including authors) matched direct API responses. No attachment was present, so live attachment download/extraction has **not** been verified against that instance; attachment verification uses mock API and generated fixtures.
+`npm run check` собирает сервер и выполняет тесты:
 
-Client examples are documented configurations. This validation does not claim GUI testing in Codex, Claude Desktop or Cursor.
+- Независимый ожидаемый список всех 34 инструментов; для каждого — валидный вызов, входные ограничения, GET-маршрут, фильтры, нормализация, права доступа и несовместимый ответ. Трафик перехватывается локальным HTTP-сервером; методы только GET.
+- `url` xor `card_id`, корпоративные URL/пути, неизвестные ID, диапазоны дат и фильтры; принадлежность чек-листов, комментариев и файлов.
+- Серверные и локальные страницы, размер 50/100, пустая и точная последняя страница; повтор страниц при передаче fingerprint; дочитывание нескольких текстов и вложенных массивов без потери записей, сохранение Unicode и служебных ссылок.
+- Кеш: отдельные ключи запросов, TTL, отключение, неизменяемые возвращаемые копии и исключение ошибок/несовместимых данных.
+- Bearer только в запросах API; отсутствие токена и подписанных файловых URL в результатах. Перенаправления без повторной передачи авторизации, публичные/приватные хосты, ограничения протокола.
+- Ограниченные повторы 429/5xx/сети/таймаутов; отказ без повторов при 401/403/404/405/410/501/422; повреждённый JSON.
+- Старые, защищённые и комментарные файлы, поиск UID, облачные ссылки; точное совпадение оригинальных байтов, MIME, SHA-256, локальные безопасные уникальные пути, сохранение после выхода, прерванное/крупное скачивание. Формат, шифрование или повреждение файла не меняют байты.
+- Вызовы всех инструментов и original resource через MCP, объявленные схемы/structuredContent, настоящий stdio-процесс, CLI help/version.
 
-The installed npm archive was exercised through an actual stdio process: 13 file formats were extracted, 14 original resources matched their source bytes, encrypted PDF rejection worked and storage requests contained no Kaiten credentials.
+`npm run test:package` проверяет npm-архив, отсутствие удалённых парсеров/лишних файлов, установку в чистый каталог, совпадение зависимостей с shrinkwrap, help/version и stdio discovery. При заданном `KAITEN_API_TOKEN_FILE` дополнительно проверяется отсутствие этого секрета в распакованных байтах архива. `npm run check:lf` проверяет LF в исходниках и документации.
 
-File parser execution is isolated and bounded. Dependency audits report no high/critical vulnerabilities. Moderate entries remain in the `mammoth` → auxiliary CLI `argparse` → `sprintf-js` chain (GHSA-hp3w-g68c-fv3c) and ExcelJS's UUID dependency (GHSA-w5hq-g745-h8pq). `mammoth/lib` does not import the CLI packages and this server does not invoke that CLI. ExcelJS imports UUID v4; the UUID advisory concerns buffer bounds in v3/v5/v6. Upstream ExcelJS/Mammoth dependency updates are still needed to remove these audit entries. Root-only npm overrides were removed because they do not protect consumers installing the published package. Source and published dependencies use the same locked versions. CI fails on new high/critical production findings.
+GitHub Actions выполняет сборку, тесты, LF, production audit и установку архива на Windows/Linux с Node.js 22/24. Production audit: уязвимости не обнаружены на момент подготовки релиза; это результат проверки текущих закреплённых зависимостей, а не гарантия на будущее.
 
-A successful functional test does not establish that every third-party parser or every existing Kaiten deployment is compatible. PDF password rejection was tested using a generated Standard-encryption dictionary; Office encryption detection was tested on an OLE-container signature and an encrypted ZIP flag. These are parser-path fixtures, not a collection of real encrypted customer documents.
+## Реальный read-only smoke-test
+
+Проверка на пользовательском корпоративном Kaiten выполнена через настоящий stdio MCP и прямые GET-запросы. Секреты и тексты корпоративных данных не включены в этот документ или пакет. Тестовые данные в Kaiten не создавались.
+
+- Заголовок и описание тестовой карточки совпали с прямым API. Описание: 3204 символа. Оба комментария прочитаны и сверены по ID, тексту и автору.
+- Успешно вызваны `get_card`, `get_card_comments`, `list_attachments`, `search_cards`, `list_space_cards`, `list_board_cards`, `get_card_location_history`, `list_subtasks`, `list_card_members`, `list_card_blockers`, `list_card_external_links`, `list_card_tags`, `list_spaces`, `get_space`, `list_boards`, `get_board`, `list_columns`, `list_subcolumns`, `list_lanes`, `list_card_types`, `list_space_users`, `get_current_user`, `list_users`, `list_company_roles`, `list_workspace_tags`, `list_custom_properties`, `list_custom_property_select_values`, `get_user_timelogs`, `get_card_timelogs`, `get_timesheet`.
+- Некоторые успешные списки пусты: это подтверждает доступность маршрута и обработку ответа, но не извлечение всех видов заполненных данных.
+- Timesheet проверен с параметрами `group_by=0/1/2`; экземпляр возвращает записи. Общий итог реального API использует поле `generalSumTimeSpent`; сервер сохраняет его. Сервер не добавляет собственную группировку к ответу Kaiten.
+- `list_sprints` возвращает `FORBIDDEN` (HTTP 403) для предоставленного токена. `get_sprint` проверен только mock-тестами из-за отсутствия доступного спринта.
+- В выбранной карточке нет вложений и доступного чек-листа: `get_checklist`, `download_attachment`, protected/CDN downloads и binary resources проверены только mock-тестами. Чужие файлы не скачивались для наполнения теста.
+- Диагностика stdio пуста; токен не попал в проверяемые результаты.
+
+## Практические ограничения
+
+Полный набор маршрутов зависит от версии Kaiten и прав токена. Списки ограничены правами пользователя; отсутствие административных прав не означает доступ к данным всей компании. Спринтовые маршруты deprecated.
+
+Для непагинируемых маршрутов MCP разбивает полный API-ответ локально. Лимит размера применяется и к JSON API; слишком большой полный ответ вернёт ошибку, а не неполный список. Для пагинируемых маршрутов используйте `previous_page`, чтобы обнаружить повтор; изменяющиеся данные между запросами не имеют snapshot-гарантии.
+
+Resources возвращают base64, поэтому их транспортный размер больше оригинала примерно на треть; клиент может иметь собственный меньший лимит. Локальные пути доступны только на хосте сервера. Чтение документов, OCR и дополнительные разрешения облачных сервисов обеспечивает агент и его окружение.
+
+HTTP 404 сообщает `NOT_FOUND`: достоверно определить отключённый маршрут только по этому статусу нельзя. При невозможности проверить родительскую связь возвращается явная ошибка. Макросы, формулы и инструкции вложений сервер не исполняет.
+
+## Источники контрактов
+
+Использованы точечные запросы Context7 и фрагменты официальной документации: [карточки](https://developers.kaiten.ru/cards/retrieve-card-list), [пространства](https://developers.kaiten.ru/spaces/retrieve-list-of-spaces), [пользователи](https://developers.kaiten.ru/users/retrieve-list-of-users), [timesheet](https://developers.kaiten.ru/timesheet/get-list), [чек-листы](https://developers.kaiten.ru/card-checklists/retrieve-card-checklist), [защищённые файлы](https://developers.kaiten.ru/restricted-access-files-migration), [изменения API 2026](https://faq-ru.kaiten.site/izmeneniya-v-publichnom-api-kaiten-s-1-oktyabrya-2026-goda). Сайты целиком не индексировались.

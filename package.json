@@ -1,10 +1,10 @@
 {
-  "name": "kaiten-card-mcp",
+  "name": "kaiten-mcp-tools",
   "version": "0.1.0",
-  "description": "Read Kaiten cards, comments and attachments from any MCP client",
+  "description": "Read-only MCP server for Kaiten cards, spaces, boards, discussions, catalogs and time tracking, with original attachments for agent analysis",
   "type": "module",
   "bin": {
-    "kaiten-card-mcp": "dist/cli.js"
+    "kaiten-mcp-tools": "dist/cli.js"
   },
   "exports": {
     ".": "./dist/server.js"
@@ -24,12 +24,12 @@
   "author": "Vitaly Solovyov",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VitalySolovyovDev/kaiten-mcp.git"
+    "url": "git+https://github.com/VitalySolovyovDev/kaiten-mcp-tools.git"
   },
   "bugs": {
-    "url": "https://github.com/VitalySolovyovDev/kaiten-mcp/issues"
+    "url": "https://github.com/VitalySolovyovDev/kaiten-mcp-tools/issues"
   },
-  "homepage": "https://github.com/VitalySolovyovDev/kaiten-mcp#readme",
+  "homepage": "https://github.com/VitalySolovyovDev/kaiten-mcp-tools#readme",
   "keywords": [
     "mcp",
     "kaiten",
@@ -37,25 +37,20 @@
     "attachments"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/build.mjs",
     "test": "vitest run",
     "check": "npm run build && npm test",
     "start": "node dist/cli.js",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "check:lf": "node scripts/check-lf.mjs",
+    "test:package": "node scripts/test-package.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "exceljs": "^4.4.0",
-    "fast-xml-parser": "^5.3.0",
-    "fflate": "^0.8.2",
-    "mammoth": "^1.11.0",
-    "pdfjs-dist": "^6.4.299",
-    "sharp": "^0.35.5",
-    "zod": "^3.25.76"
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
-    "pdf-lib": "^1.17.1",
     "typescript": "^5.9.2",
     "vitest": "^5.0.4"
   }

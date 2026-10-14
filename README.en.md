@@ -1,138 +1,117 @@
-# Kaiten Card MCP
+# Kaiten MCP Tools
 
-[Русский](README.md) · [GitHub](https://github.com/VitalySolovyovDev/kaiten-mcp) · [npm](https://www.npmjs.com/package/kaiten-card-mcp)
+A read-only MCP server for Kaiten cards, spaces, boards, discussions, catalogs and time tracking, with original attachments for agent analysis.
 
-A local **stdio** MCP server for reading a Kaiten card by its URL: title, description, comments and attachments, including comment files. Works with compatible MCP clients; all requests to Kaiten are GET. This is an independent community integration.
+Node.js **22.15+**, TypeScript, **stdio**, any compatible MCP client. All requests to Kaiten and attachment servers use GET. No tool creates, changes, deletes or uploads Kaiten data. Production dependencies are the official MCP SDK and Zod; files are never interpreted or converted.
 
 ## Install and configure
 
-1. Install Node.js **22.15+** and npm.
-2. Obtain an API token from your Kaiten profile. Access follows the token owner's permissions; see the [Kaiten API](https://developers.kaiten.ru/).
-3. Store only the token in a private UTF-8 file outside your repository, such as `C:\Users\name\.config\kaiten\api.token`. A trailing newline is accepted. Restrict access using your OS permissions.
-4. Add the configuration below to your MCP client and restart the connection.
+Install Node.js 22.15+ (22 and 24 supported). Create an API token in your Kaiten profile integration/API settings, subject to organization permissions. See [Kaiten API documentation](https://developers.kaiten.ru/). Set the full instance URL and exactly one token source in your client's MCP configuration. [npm package](https://www.npmjs.com/package/kaiten-mcp-tools), [source](https://github.com/VitalySolovyovDev/kaiten-mcp-tools).
 
-```sh
-npx -y kaiten-card-mcp@0.1.0 --help
-```
-
-Optional global install: `npm install -g kaiten-card-mcp@0.1.0`. The client starts the server automatically. Without a client, a regular terminal launch waits for MCP input on stdin.
-
-Release dependencies are pinned using a published `npm-shrinkwrap.json` so package installs use the tested dependency set.
-
-Required environment:
-
-- `KAITEN_BASE_URL`: full instance URL, e.g. `https://company.kaiten.ru` or a corporate domain. Path prefixes are supported. Credentials, query parameters and fragments are not allowed in this setting.
-- Exactly one of `KAITEN_API_TOKEN_FILE` (absolute token-file path, recommended) or `KAITEN_API_TOKEN`.
-
-Optional environment:
-
-- `NODE_EXTRA_CA_CERTS`: absolute PEM path for a corporate CA, set before Node starts.
-- `KAITEN_TIMEOUT_MS`: per-request timeout, default `30000`.
-- `KAITEN_MAX_FILE_BYTES`: file/API response limit, default `20971520` (20 MiB).
-- `KAITEN_MAX_TEXT_CHARS`: extracted text chunk or aggregate comment-page text limit, default `20000`. JSON wrappers and metadata add to this size.
-- `KAITEN_ATTACHMENT_ALLOWED_HOSTS`: comma-separated exact hostnames of additional private attachment servers. The configured Kaiten origin is already trusted; public HTTPS storage does not require this list.
-- `KAITEN_ALLOW_HTTP=true`: explicitly enable HTTP for test/internal environments. Default is HTTPS only; HTTP sends credentials without encryption.
-
-The server uses `/api/latest`, with `broken_api=false` when retrieving a card. Website passwords and addon OAuth are not supported authentication alternatives.
-
-### Codex
-
-Add to `~/.codex/config.toml` (`%USERPROFILE%\.codex\config.toml` on Windows):
-
-```toml
-[mcp_servers.kaiten]
-command = "npx.cmd"
-args = ["-y", "kaiten-card-mcp@0.1.0"]
-
-[mcp_servers.kaiten.env]
-KAITEN_BASE_URL = "https://tasks.example.org"
-KAITEN_API_TOKEN_FILE = 'C:\Users\name\.config\kaiten\api.token'
-```
-
-Use `npx` and an absolute POSIX token-file path on macOS/Linux. [Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-
-### Claude Desktop
-
-Open Settings → Developer → Edit Config. Windows: `%APPDATA%\Claude\claude_desktop_config.json`. macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`.
+Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
 
 ```json
 {
   "mcpServers": {
-    "kaiten": {
-      "command": "npx.cmd",
-      "args": ["-y", "kaiten-card-mcp@0.1.0"],
+    "kaiten-mcp-tools": {
+      "command": "npx",
+      "args": ["-y", "kaiten-mcp-tools@0.1.0"],
       "env": {
-        "KAITEN_BASE_URL": "https://tasks.example.org",
-        "KAITEN_API_TOKEN_FILE": "C:\\Users\\name\\.config\\kaiten\\api.token"
+        "KAITEN_BASE_URL": "https://tasks.company.example",
+        "KAITEN_API_TOKEN_FILE": "C:/Users/you/secrets/kaiten.token"
       }
     }
   }
 }
 ```
 
-Fully quit and restart Claude Desktop. Use `npx` on macOS/Linux. If the client cannot find Node/npm, specify absolute executable paths. [Local server connection guide](https://py.sdk.modelcontextprotocol.io/get-started/real-host/).
+The token file contains only the token (BOM/trailing newline allowed). Restrict its OS permissions. Alternatively use `KAITEN_API_TOKEN`; do not set both. Keep credentials out of repositories and command arguments. On Windows, if `npx` is not found, use its absolute `npx.cmd` path or run an installed package using `node` and the absolute `dist/cli.js` path.
 
-### Cursor
+Codex (`~/.codex/config.toml`):
 
-Use the same JSON with `"type": "stdio"` added inside the `kaiten` entry. Save to `~/.cursor/mcp.json` or project `.cursor/mcp.json`, preserving other server entries. [Cursor MCP documentation](https://prod.cursor.com/docs/mcp).
+```toml
+[mcp_servers.kaiten-mcp-tools]
+command = "npx"
+args = ["-y", "kaiten-mcp-tools@0.1.0"]
 
-### Source and release archives
-
-```sh
-git clone https://github.com/VitalySolovyovDev/kaiten-mcp.git
-cd kaiten-mcp
-npm ci
-npm run build
+[mcp_servers.kaiten-mcp-tools.env]
+KAITEN_BASE_URL = "https://tasks.company.example"
+KAITEN_API_TOKEN_FILE = "C:/Users/you/secrets/kaiten.token"
 ```
 
-Configure `command: "node"` and an absolute path to `dist/cli.js` in `args`, using the same environment. Release `.tgz` files include the compiled server but still need npm to install dependencies: `npm install -g /absolute/path/kaiten-card-mcp-0.1.0.tgz`.
+Restart/reconnect the client. Ask your agent to call `get_current_user`, then `get_card` with a link. Starting the server in a terminal waits for MCP messages on stdin; no console output is expected. Help/version do not require credentials:
+
+```sh
+npx -y kaiten-mcp-tools@0.1.0 --help
+npx -y kaiten-mcp-tools@0.1.0 --version
+```
+
+For an installed CLI: `npm install -g kaiten-mcp-tools@0.1.0`, then configure `kaiten-mcp-tools` as the command. Installation is noninteractive. The published `npm-shrinkwrap.json` pins dependencies.
+
+## Environment
+
+- `KAITEN_BASE_URL`: required full deployment URL, including corporate domain or path prefix; no domain suffix is added. HTTPS by default.
+- `KAITEN_API_TOKEN` or `KAITEN_API_TOKEN_FILE`: exactly one Bearer credential source.
+- `NODE_EXTRA_CA_CERTS`: optional corporate CA PEM path, set before Node starts. TLS verification stays enabled.
+- `KAITEN_TIMEOUT_MS`: per-request timeout, default `30000`. Network/timeouts, 429 and selected temporary 5xx get at most two retries. Long cooldowns return an actionable error.
+- `KAITEN_MAX_FILE_BYTES`: original/API response size cap, default `20971520` (20 MiB).
+- `KAITEN_MAX_TEXT_CHARS`: text-field budget, default `20000`, minimum 2; IDs, URLs and JSON envelopes are preserved.
+- `KAITEN_CACHE_TTL_MS`: catalogs and structural metadata TTL, default `60000`; `0` disables caching. Cards, comments, sprints, time logs and bytes are always fresh. Errors are not cached.
+- `KAITEN_DOWNLOAD_DIR`: original-file directory; defaults to `kaiten-mcp-tools` in OS temp. Files use safe unique names and atomic writes. They remain after server exit; the user/OS manages cleanup.
+- `KAITEN_ATTACHMENT_ALLOWED_HOSTS`: comma-separated exact additional private storage hostnames. Public destinations are allowed; private destinations require explicit allowance, except the configured Kaiten host. Credentials are never forwarded to storage or redirects.
+- `KAITEN_ALLOW_HTTP=true`: explicit HTTP opt-in for internal deployments/local tests.
+
+One process serves one instance and one credential source.
 
 ## Tools
 
-**`get_card({url, description_offset?})`** accepts `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}` and `/space/{space_id}/boards/card/{id}`. Query/fragment suffixes are ignored; the origin and installation path must match the configured instance.
+34 separate tools. Card operations require **exactly one** of `url` / positive integer `card_id`. Accepted links: `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}`, `/space/{space_id}/boards/card/{id}`. Origin and deployment prefix must match the configuration. Query/fragment do not affect the ID.
 
-Returns `id`, `uid`, `url`, `title`, `description`, `attachments`, `attachments_complete` and optional `warnings`. Description includes its format, character offset, total length and `next_offset`; use that value as `description_offset` to continue. Enumerates comments to discover their attachments. If this fails, returns the readable card with `attachments_complete=false`. Does not download files automatically.
+- Cards: `get_card`, `search_cards`, `list_space_cards`, `list_board_cards`, `get_card_location_history`, `list_subtasks`.
+- Discussion and related data: `get_card_comments`, `get_checklist`, `list_card_members`, `list_card_blockers`, `list_card_external_links`, `list_card_tags`.
+- Structure: `list_spaces`, `get_space`, `list_boards`, `get_board`, `list_columns`, `list_subcolumns`, `list_lanes`, `list_card_types`, `list_space_users`.
+- Users/catalogs: `get_current_user`, `list_users`, `list_company_roles`, `list_workspace_tags`, `list_custom_properties`, `list_custom_property_select_values`.
+- Sprints: `list_sprints`, `get_sprint` (deprecated Kaiten routes; permissions/version determine availability).
+- Time tracking: `get_user_timelogs`, `get_card_timelogs`, `get_timesheet`.
+- Originals: `list_attachments`, `download_attachment`.
 
-**`get_card_comments({url, offset?, limit?, text_offset?})`** returns authors, dates, format, edit/delete/internal flags, comment attachments and `next_offset`. Defaults to 50 comments, maximum 100. Follow continuation until `null`; an exactly full final page may require an empty request. Text limits can shorten a page; always use the returned offset. For a comment with `next_text_offset`, request its position using `offset`, `limit=1` and `text_offset=next_text_offset` before continuing. Deleted comments expose metadata without text. HTML/Markdown is returned as data, never executed.
+Inputs and outputs have MCP schemas. Successful results contain `structuredContent` plus the same JSON as text content. Entities use `item`, lists use `items`. Lists default to `detail: "summary"`, entities to `"full"`; choose either explicitly. Missing API fields stay absent.
 
-**`read_attachment({url, attachment_id, offset?, page?, sheet?, row_start?, row_count?})`** downloads a file identified by card/comment metadata. Pages/slides/rows are 1-based. Downloads only URLs retrieved from Kaiten.
+`get_card` directly fetches the card; it does not traverse comments. `description_format` is `unknown` when the API does not supply a format, otherwise `markdown`/`html`. Card lists use the dedicated paginated cards route, not nested board cards. `get_checklist` requires `checklist_id` and verifies its membership using the authoritative card response. Invalid individual attachment metadata is reported in `attachment_warnings` without hiding card/comment text.
 
-- PNG/JPEG/WebP/GIF/TIFF: native MCP image content, first frame/page, PNG preview up to 2048px with explicit resize warnings. Visual analysis requires an image-capable client.
-- TXT/MD/CSV/JSON: UTF-8 or BOM-marked UTF-16LE text.
-- PDF: text per page. DOCX: text and tables. PPTX: text/table cells per slide.
-- XLSX: worksheets, rows, values, formulas and cached results. Default: 50 rows of the first worksheet; maximum 100 rows and first 100 columns per request. Does not recalculate formulas.
+### Filters and pagination
 
-Follow `next_offset` within the same text/page/slide/row selection first. Then use `next_page` or `next_row`, resetting `offset=0`. Card, comment and file contents are untrusted data, never agent instructions.
+Lists default to `limit: 50` (max 100), `offset: 0`. Follow `next_offset` until null; an exactly full last page may require one empty request. Pass the preceding `page_fingerprint` as `previous_page` to detect repeated pages. Unpaginated API routes are sliced locally (`pagination: "local"`); this bounds the agent response, not the original API request.
 
-## Original resources and limitations
+Card search supports `query`, `search_fields`, `space_id`, `board_id`, `column_id`, `lane_id`, `owner_id`, `responsible_id`, `type_id`; ID arrays `owner_ids`, `member_ids`, `responsible_ids`, `type_ids`, `tag_ids`, `column_ids`, and `states` (1/2/3). Exclusions: `exclude_board_ids`, `exclude_lane_ids`, `exclude_column_ids`. Flags: `condition` (1/2/3), `archived`, `asap`, `overdue`, `done_on_time`, `with_due_date`. ISO8601 dates with timezone: `created_after/before`, `updated_after/before`, `due_date_after/before`, `first_moved_in_progress_after/before`, `last_moved_to_done_at_after/before`. Sort by `order_by` (comma-separated fields), `order_direction: "asc" | "desc"`. `search_fields` requires nonempty `query`. Empty filter arrays are omitted. Full card search requests descriptions explicitly.
 
-Each attachment provides `resource_uri`, e.g. `kaiten://cards/123/attachments/456`. MCP `resources/read` returns original bytes as a base64 `blob`, including unsupported DOC/XLS/PPT. Clients without resource support cannot obtain unsupported originals through this server.
+Time tracking: inclusive `from`/`to` in `YYYY-MM-DD`, required for user logs/timesheet; optional together for card logs (locally filtered by `for_date`). Card logs also support API filters `for_date` and `personal`. Timesheet ID arrays: `card_ids`, `user_ids`, `group_ids`, `space_ids`, `board_ids`, `column_ids`, `tag_ids`, `visible_column_ids`; options `condition`, `group_by` (0 none, 1 user, 2 card), `time_precision`, `time_unit`, `with_daily_distribution`, `only_general_sum` (0/1). API wrapper totals are preserved in `metadata`, including `generalSumTimeSpent`; units follow Kaiten/requested parameters.
 
-Supports legacy and [restricted-access files](https://developers.kaiten.ru/restricted-access-files-migration). Obtains temporary URLs immediately before downloading. Never forwards the Kaiten token to external storage or through redirects.
+### Continuing long fields
 
-No built-in OCR for scanned PDFs, password handling, macro execution, Office embedded-image extraction or exact document-layout rendering. Cloud documents require separate provider authorization and are exposed as external links.
+JSON is never cut. `continuation` contains RFC6901 paths, `kind` (`text`/`section`), current offset, total and `next_offset`. Repeat the same tool/filter/page with the entire `next_text_offsets` map as `text_offsets` to resume all text fields under a shared budget. Append returned fragments; completed fields are empty on resumed calls. Nested arrays are limited to 100 entries per section: pass their path/next offset in `section_offsets`. Changes between calls may require a reread; Kaiten does not provide snapshot consistency here.
 
-Extraction runs in isolated workers: 30-second deadline, 256 MiB worker heap. Office expansion is limited to 100 MiB/10,000 entries; images to 40 million pixels. Errors do not remove access to the original resource if it passes the download size limit. Partial text always includes continuation or a warning.
+### Original files
 
-## Troubleshooting
+`list_attachments` returns card files plus one selected page of comment files: `include_comments` (default true), `comments_offset` (0), `comments_limit` (50, max 100). Follow `comments_next_offset` for more comments and `next_offset` for files in the selected pages. Listing never downloads bytes. Metadata includes source, ID, filename, optional MIME/size and `resource_uri`.
 
-- `CONFIG_INVALID`: URL, readable token-file path, or conflicting token sources.
-- `UNAUTHORIZED`/`FORBIDDEN`: token validity and user permissions.
-- `NETWORK_ERROR`/`TIMEOUT`: network, VPN, DNS or corporate CA.
-- `URL_BLOCKED`: HTTPS or allowlisting a private attachment host.
-- `FILE_TOO_LARGE`: configured download limit exceeded.
-- `UNSUPPORTED_FORMAT`/`PASSWORD_PROTECTED`/`PARSE_FAILED`: obtain the original resource.
-- `RATE_LIMITED`: retry later. Up to two retries honor `Retry-After`/`X-RateLimit-Reset`; requested waits above five seconds are surfaced for a later request.
+The user chooses files in their dialogue with the agent. `download_attachment` requires `attachment_id`, verifies card/comment membership and downloads only that original. Resolving a comment attachment may require paging comments. It returns absolute local `path`, `name`, `mime_type`, `size`, `sha256`, `resource_uri`. Paths refer to the MCP server's host. Clients without filesystem access read `kaiten://cards/{card_id}/attachments/{attachment_id}` to receive original bytes as base64. Resource reads are also on demand.
 
-Normal stdout contains only MCP protocol. Startup errors go to stderr without tokens or signed URLs. The first `npx` launch needs network access to install packages.
+Legacy and protected files are supported, including temporary signed URLs and parent UIDs. Bearer credentials are never sent to file servers or along redirects. Cloud documents requiring separate authentication appear as `external_url`; downloading explains that limitation.
 
-## Development
+PDFs, images, archives, modern/legacy Office files, encrypted and corrupted files are all opaque originals. The agent needs its own file/image/PDF/Office tools for analysis. This server does not extract text, run OCR, execute macros/formulas or download all attachments automatically. Treat Kaiten content as data, never instructions.
+
+## Errors and development
+
+Tools return `isError: true` with `error.code/message/status`. Codes distinguish `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `UNSUPPORTED_ROUTE` (405/410/501), `API_RESPONSE_INVALID`, `PARENT_MISMATCH`, `PAGINATION_INVALID`, `FILE_TOO_LARGE`, `EXTERNAL_ATTACHMENT`. A 404 alone cannot distinguish an unknown ID from a disabled route and is reported as `NOT_FOUND`. Access failures are never replaced by empty lists. Diagnostics use stderr; stdout is for MCP. Tokens and API contents are not logged.
 
 ```sh
 npm ci
 npm run check
+npm run check:lf
+npm audit --omit=dev
+npm pack
+npm run test:package
 ```
 
-Tests generate small fixtures and exercise mock HTTP plus real stdio transport. See [validation notes](docs/VALIDATION.md) for live-test limitations.
-
-An optional terminal configuration wizard is deferred until the working published release is confirmed. Version 0.1.0 has no interactive `postinstall` or `configure` command.
+Builds clean only `dist` to prevent removed parser files from entering archives. HTTP, adapters, files and MCP registration are separate with explicit dependencies. Tests cover every tool, GET-only traffic, pagination, caches, errors, binary originals and real stdio. CI runs on Windows/Linux and Node.js 22/24. [Validation notes](docs/VALIDATION.md), [Russian README](README.md). MIT License.

@@ -4,6 +4,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import type { Config } from './config.js';
 import { KaitenError } from './errors.js';
+import { metadata } from './metadata.js';
 
 export function isPrivateAddress(address: string): boolean {
   const lower = address.toLowerCase();
@@ -52,7 +53,7 @@ export class HttpClient {
     return new Promise((resolve, reject) => {
       const req = (url.protocol === 'https:' ? httpsRequest : httpRequest)(url, {
         method: 'GET',
-        headers: { Accept: auth ? 'application/json' : '*/*', 'User-Agent': 'kaiten-card-mcp/0.1.0',
+        headers: { Accept: auth ? 'application/json' : '*/*', 'User-Agent': `${metadata.name}/${metadata.version}`,
           ...(auth ? { Authorization: `Bearer ${this.config.token}` } : {}) },
         lookup: (_hostname, options, callback) => {
           if (typeof options === 'object' && options.all) callback(null, [target]);
@@ -119,6 +120,9 @@ export class HttpClient {
       401: ['UNAUTHORIZED', 'The API token is invalid or expired.'],
       403: ['FORBIDDEN', 'Access denied by Kaiten or the file server.'],
       404: ['NOT_FOUND', 'The requested card or file was not found.'],
+      405: ['UNSUPPORTED_ROUTE', 'This Kaiten instance does not support the requested read route.'],
+      410: ['UNSUPPORTED_ROUTE', 'This Kaiten read route is no longer available.'],
+      501: ['UNSUPPORTED_ROUTE', 'This Kaiten instance does not implement the requested route.'],
       422: ['FILE_REJECTED', 'Kaiten rejected the file. It may be marked as malicious.'],
       429: ['RATE_LIMITED', 'Rate limit reached. Retry later.'],
     };

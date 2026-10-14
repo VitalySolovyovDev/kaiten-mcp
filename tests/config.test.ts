@@ -19,6 +19,14 @@ describe('configuration and URLs', () => {
     expect(parseCardUrl(env.KAITEN_BASE_URL + '/kaiten/123', config)).toBe(123);
     expect(() => parseCardUrl(env.KAITEN_BASE_URL + '/123', config)).toThrow();
   });
+  it('configures a single download directory and supports disabling cache', () => {
+    expect(loadConfig({ ...env, KAITEN_CACHE_TTL_MS: '0', KAITEN_DOWNLOAD_DIR: 'C:/Work/downloads' }).cacheTtlMs).toBe(0);
+    expect(loadConfig(env).cacheTtlMs).toBe(60000);
+    expect(loadConfig(env).downloadDir).toContain('kaiten-mcp-tools');
+  });
+  it.each([{ KAITEN_CACHE_TTL_MS: '-1' }, { KAITEN_CACHE_TTL_MS: 'NaN' }, { KAITEN_CACHE_TTL_MS: '1.5' }, { KAITEN_DOWNLOAD_DIR: '' }, { KAITEN_MAX_TEXT_CHARS: '1' }])('rejects invalid optional limits/directories', extra => {
+    expect(() => loadConfig({ ...env, ...extra })).toThrow();
+  });
   it.each([{}, { ...env, KAITEN_API_TOKEN: '' }, { ...env, KAITEN_API_TOKEN: 'a\nb' }, { ...env, KAITEN_TIMEOUT_MS: '-1' }, { ...env, KAITEN_BASE_URL: 'https://x.example?q=1' }, { ...env, KAITEN_API_TOKEN_FILE: 'file' }, { ...env, KAITEN_BASE_URL: 'http://x.example' }])('rejects invalid configuration', value => {
     expect(() => loadConfig(value)).toThrow();
   });

@@ -1,0 +1,4 @@
+import { readFileSync } from 'node:fs';
+
+const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+export const metadata: Readonly<{ name: string; version: string }> = Object.freeze({ name: manifest.name, version: manifest.version });
