@@ -17,6 +17,8 @@ npx -y kaiten-card-mcp@0.1.0 --help
 
 Optional global install: `npm install -g kaiten-card-mcp@0.1.0`. The client starts the server automatically. Without a client, a regular terminal launch waits for MCP input on stdin.
 
+Release dependencies are pinned using a published `npm-shrinkwrap.json` so package installs use the tested dependency set.
+
 Required environment:
 
 - `KAITEN_BASE_URL`: full instance URL, e.g. `https://company.kaiten.ru` or a corporate domain. Path prefixes are supported. Credentials, query parameters and fragments are not allowed in this setting.
