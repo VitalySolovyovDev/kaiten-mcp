@@ -93,7 +93,7 @@ JSON is never cut. `continuation` contains RFC6901 paths, `kind` (`text`/`sectio
 
 ### Original files
 
-`list_attachments` returns card files plus one selected page of comment files: `include_comments` (default true), `comments_offset` (0), `comments_limit` (50, max 100). Follow `comments_next_offset` for more comments and `next_offset` for files in the selected pages. Listing never downloads bytes. Metadata includes source, ID, filename, optional MIME/size and `resource_uri`.
+`list_attachments` returns card files plus one selected page of comment files: `include_comments` (default true), `comments_offset` (0), `comments_limit` (50, max 100). Follow `comments_next_offset`, passing `comments_page_fingerprint` as `comments_previous_page` to detect repeats; `next_offset` pages files in the selected pages. Listing never downloads bytes. Metadata includes source, ID, filename, optional MIME/size and `resource_uri`. Unknown filenames are `null`; a safe local filename is generated independently.
 
 The user chooses files in their dialogue with the agent. `download_attachment` requires `attachment_id`, verifies card/comment membership and downloads only that original. Resolving a comment attachment may require paging comments. It returns absolute local `path`, `name`, `mime_type`, `size`, `sha256`, `resource_uri`. Paths refer to the MCP server's host. Clients without filesystem access read `kaiten://cards/{card_id}/attachments/{attachment_id}` to receive original bytes as base64. Resource reads are also on demand.
 

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, readdir, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, isAbsolute } from 'node:path';
+import { join, isAbsolute, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -119,7 +119,7 @@ describe('original attachments',()=>{
   it('saves safely with unique filenames and no partial files',async()=>{
     const c=new KaitenClient(config());
     const a=await c.execute('download_attachment',{card_id:123,attachment_id:'legacy'}),b=await c.execute('download_attachment',{card_id:123,attachment_id:'legacy'});
-    expect(a.item.path).not.toBe(b.item.path);expect(a.item.path.startsWith(directory)).toBe(true);expect(a.item.path).not.toContain('CON:');
+    expect(a.item.path).not.toBe(b.item.path);expect(await realpath(dirname(a.item.path))).toBe(await realpath(directory));expect(a.item.path).not.toContain('CON:');
     expect((await readdir(directory)).some(f=>f.endsWith('.part'))).toBe(false);
   });
   it('rejects interrupted and oversized transfers without writing a result',async()=>{

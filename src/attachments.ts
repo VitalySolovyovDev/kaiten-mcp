@@ -7,7 +7,7 @@ import { KaitenError } from './errors.js';
 
 type RecordData = Record<string, any>;
 export interface Attachment {
-  id: string; name: string; size: number | null; mime_type: string | null;
+  id: string; name: string | null; size: number | null; mime_type: string | null;
   source: 'card' | 'comment' | 'custom_property';
   comment_id: string | null; comment_uid: string | null; property_uid: string | null;
   protected: boolean; external: boolean; resource_uri: string;
@@ -38,8 +38,9 @@ export class AttachmentClient {
   files(card: RecordData, comments: RecordData[] = []): FileData[] {
     const map = new Map<string, FileData>();
     const add = (raw: RecordData, comment?: RecordData) => {
-      const id = String(raw.id ?? raw.uid ?? '');
-      if (!id) throw new KaitenError('API_RESPONSE_INVALID', 'Attachment metadata is missing its identifier.');
+      const identifier = raw.id ?? raw.uid;
+      const id = String(identifier ?? '');
+      if (!id || id.length > 200 || !['number','string'].includes(typeof identifier)) throw new KaitenError('API_RESPONSE_INVALID', 'Attachment metadata is missing a valid identifier.');
       if (raw.card_id !== undefined && String(raw.card_id) !== String(card.id)) throw new KaitenError('PARENT_MISMATCH', 'Attachment belongs to another card.');
       comment ??= comments.find(item => raw.comment_id != null && String(item.id) === String(raw.comment_id));
       const commentId = raw.comment_id ?? comment?.id ?? null;
@@ -50,7 +51,7 @@ export class AttachmentClient {
       if (size !== null && (!Number.isSafeInteger(size) || size < 0)) throw new KaitenError('API_RESPONSE_INVALID', 'Attachment size is invalid.');
       const external = [2, 3, 4, 5, 6].includes(Number(raw.type));
       const attachment: Attachment = {
-        id, name: String(raw.name ?? `file-${id}`), size: Number.isFinite(size) ? size : null,
+        id, name: typeof raw.name === 'string' ? raw.name : null, size: Number.isFinite(size) ? size : null,
         mime_type: typeof raw.mime_type === 'string' ? raw.mime_type : null,
         source, comment_id: commentId === null ? null : String(commentId),
         comment_uid: commentUid === null ? null : String(commentUid), property_uid: propertyUid,
@@ -139,7 +140,7 @@ export class AttachmentClient {
     try {
       await mkdir(this.config.downloadDir, { recursive: true, mode: 0o700 });
       const directory = await realpath(this.config.downloadDir);
-      const safeName = basename(file.attachment.name.replace(/\\/g, '/')).normalize('NFKC')
+      const safeName = basename((file.attachment.name ?? 'attachment').replace(/\\/g, '/')).normalize('NFKC')
         .replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g, '_').replace(/[. ]+$/g, '').slice(0, 120) || 'attachment';
       const target = resolve(directory, `${randomUUID()}-${safeName}`);
       const child = relative(directory, target);

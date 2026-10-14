@@ -15,6 +15,7 @@ const outputSchema = z.object({
   next_text_offsets: z.record(z.number()).optional(), warnings: z.array(z.string()).optional(),
   comments_offset: z.number().optional(), comments_limit: z.number().optional(), comments_next_offset: z.number().nullable().optional(),
   comments_included: z.boolean().optional(), total_in_selected_pages: z.number().optional(),
+  comments_page_fingerprint: z.string().optional(),
   error: z.object({ code: z.string(), message: z.string(), status: z.number().optional() }).optional(),
 }).strict();
 
@@ -24,7 +25,7 @@ export function createServer(config: Config, client = new KaitenClient(config)):
     description: spec.description, inputSchema: spec.input,
     // Optional success fields allow error structuredContent to satisfy MCP client validators too.
     outputSchema: spec.kind === 'download'
-      ? outputSchema.extend({ item: z.object({ path: z.string(), name: z.string(), mime_type: z.string(), size: z.number().int().nonnegative(), sha256: z.string().regex(/^[a-f0-9]{64}$/), resource_uri: z.string() }).optional() })
+      ? outputSchema.extend({ item: z.object({ path: z.string(), name: z.string().nullable(), mime_type: z.string(), size: z.number().int().nonnegative(), sha256: z.string().regex(/^[a-f0-9]{64}$/), resource_uri: z.string() }).optional() })
       : outputSchema,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   }, async args => {

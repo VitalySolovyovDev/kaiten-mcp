@@ -159,10 +159,16 @@ export class KaitenClient {
     if (String(card.id) !== String(a.card_id)) throw new KaitenError('API_RESPONSE_INVALID', 'Card response has an invalid identifier.');
     if (!Array.isArray(card.files)) throw new KaitenError('API_RESPONSE_INVALID', 'Kaiten did not expose the card attachment list.');
     const comments = a.include_comments ? await this.files.rawComments(a.card_id, a.comments_offset, a.comments_limit) : [];
+    const commentFingerprint = fingerprint(comments);
+    if (comments.length && a.comments_previous_page === commentFingerprint) throw new KaitenError('PAGINATION_INVALID', 'Kaiten repeated the previous comment page. The attachment list is incomplete.');
     const all = this.files.files(card, comments).map(f => f.attachment);
-    return this.clean({ items: all.slice(a.offset, a.offset + a.limit), offset: a.offset, limit: a.limit,
+    const selected = all.slice(a.offset, a.offset + a.limit);
+    const pageFingerprint = fingerprint(selected);
+    if (selected.length && a.previous_page === pageFingerprint) throw new KaitenError('PAGINATION_INVALID', 'Kaiten repeated the previous attachment page.');
+    return this.clean({ items: selected, offset: a.offset, limit: a.limit, page_fingerprint: pageFingerprint,
       next_offset: a.offset + a.limit < all.length ? a.offset + a.limit : null,
       comments_offset: a.comments_offset, comments_limit: a.comments_limit,
+      comments_page_fingerprint: commentFingerprint,
       comments_next_offset: a.include_comments && comments.length === a.comments_limit ? a.comments_offset + comments.length : null,
       comments_included: a.include_comments, total_in_selected_pages: all.length, continuation: [], warnings: [] });
   }

@@ -57,6 +57,11 @@ describe('pagination and text continuation',()=>{
     const a=await c.execute('list_columns',{board_id:1,limit:100}),b=await c.execute('list_columns',{board_id:1,offset:a.next_offset,limit:100});
     expect(a.items).toHaveLength(100);expect(b.items).toEqual([{id:101}]);expect(b.next_offset).toBeNull();expect(get.mock.calls[0][1]).toEqual({});
   });
+  it('detects repeated selected comment pages when listing attachments',async()=>{
+    const {c,get}=mocked();get.mockImplementation(async p=>p==='cards/1'?{id:1,files:[]}:[{id:2,text:'Comment',files:[]}]);
+    const first=await c.execute('list_attachments',{card_id:1,comments_limit:1});expect(first.comments_next_offset).toBe(1);
+    await expect(c.execute('list_attachments',{card_id:1,comments_limit:1,comments_offset:1,comments_previous_page:first.comments_page_fingerprint})).rejects.toMatchObject({code:'PAGINATION_INVALID'});
+  });
   it('does not read or cache comments when getting a card',async()=>{
     const {c,get}=mocked();get.mockResolvedValue({id:1,title:'Card',description:'abcdefghij',files:[]});
     await c.execute('get_card',{card_id:1});await c.execute('get_card',{card_id:1});expect(get).toHaveBeenCalledTimes(2);expect(get.mock.calls.every(call=>call[0]==='cards/1')).toBe(true);
