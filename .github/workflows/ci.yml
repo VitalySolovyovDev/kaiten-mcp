@@ -23,5 +23,5 @@ jobs:
       - run: npm run check
       - run: npm run check:lf
       - run: npm audit --omit=dev --audit-level=high
-      - run: npm pack --dry-run
+      - run: npm run pack:release -- --dry-run
       - run: npm run test:package

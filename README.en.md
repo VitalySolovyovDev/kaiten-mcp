@@ -15,7 +15,7 @@ Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
   "mcpServers": {
     "kaiten-mcp-tools": {
       "command": "npx",
-      "args": ["-y", "kaiten-mcp-tools@0.1.0"],
+      "args": ["-y", "kaiten-mcp-tools@0.1.1"],
       "env": {
         "KAITEN_BASE_URL": "https://tasks.company.example",
         "KAITEN_API_TOKEN_FILE": "C:/Users/you/secrets/kaiten.token"
@@ -32,7 +32,7 @@ Codex (`~/.codex/config.toml`):
 ```toml
 [mcp_servers.kaiten-mcp-tools]
 command = "npx"
-args = ["-y", "kaiten-mcp-tools@0.1.0"]
+args = ["-y", "kaiten-mcp-tools@0.1.1"]
 
 [mcp_servers.kaiten-mcp-tools.env]
 KAITEN_BASE_URL = "https://tasks.company.example"
@@ -42,11 +42,11 @@ KAITEN_API_TOKEN_FILE = "C:/Users/you/secrets/kaiten.token"
 Restart/reconnect the client. Ask your agent to call `get_current_user`, then `get_card` with a link. Starting the server in a terminal waits for MCP messages on stdin; no console output is expected. Help/version do not require credentials:
 
 ```sh
-npx -y kaiten-mcp-tools@0.1.0 --help
-npx -y kaiten-mcp-tools@0.1.0 --version
+npx -y kaiten-mcp-tools@0.1.1 --help
+npx -y kaiten-mcp-tools@0.1.1 --version
 ```
 
-For an installed CLI: `npm install -g kaiten-mcp-tools@0.1.0`, then configure `kaiten-mcp-tools` as the command. Installation is noninteractive. The published `npm-shrinkwrap.json` pins dependencies.
+For an installed CLI: `npm install -g kaiten-mcp-tools@0.1.1`, then configure `kaiten-mcp-tools` as the command. Installation is noninteractive. The published `npm-shrinkwrap.json` pins dependencies.
 
 ## Environment
 
@@ -110,8 +110,8 @@ npm ci
 npm run check
 npm run check:lf
 npm audit --omit=dev
-npm pack
+npm run pack:release
 npm run test:package
 ```
 
-Builds clean only `dist` to prevent removed parser files from entering archives. HTTP, adapters, files and MCP registration are separate with explicit dependencies. Tests cover every tool, GET-only traffic, pagination, caches, errors, binary originals and real stdio. CI runs on Windows/Linux and Node.js 22/24. [Validation notes](docs/VALIDATION.md), [Russian README](README.md). MIT License.
+Release archives are built with `npm run pack:release` in a temporary directory, with a production-only shrinkwrap and no development dependencies or npm scripts. The development lockfile stays unchanged. Builds clean only `dist` to prevent removed parser files from entering archives. HTTP, adapters, files and MCP registration are separate with explicit dependencies. Tests cover every tool, GET-only traffic, pagination, caches, errors, binary originals and real stdio. CI runs on Windows/Linux and Node.js 22/24. [Validation notes](docs/VALIDATION.md), [Russian README](README.md). MIT License.

@@ -12,6 +12,7 @@ import { KaitenClient } from '../src/kaiten.js';
 import { HttpClient } from '../src/http.js';
 import { createServer } from '../dist/server.js';
 import { toolSpecs } from '../src/tools.js';
+import { metadata } from '../src/metadata.js';
 import { contracts } from './contracts.js';
 import { json, listen, original } from './helpers.js';
 
@@ -134,7 +135,7 @@ describe('MCP protocol and CLI',()=>{
   async function verify(client: Client) {
     const tools=(await client.listTools()).tools;
     expect(tools.map(t=>t.name)).toEqual(contracts.map(c=>c[0]));expect(tools.every(t=>t.outputSchema&&t.annotations?.readOnlyHint)).toBe(true);
-    expect(client.getServerVersion()).toEqual({name:'kaiten-mcp-tools',version:'0.1.0'});
+    expect(client.getServerVersion()).toEqual(metadata);
     let downloadedPath='';
     for(const [name,args] of contracts) {const result=await client.callTool({name,arguments:args});expect(result.isError, name).not.toBe(true);expect(result.structuredContent,name).toBeDefined();if(name==='download_attachment')downloadedPath=(result.structuredContent!.item as any).path;}
     const wrong=await client.callTool({name:'get_card',arguments:{card_id:123,url:api.url+'/123'}});expect(wrong.isError).toBe(true);
@@ -157,6 +158,6 @@ describe('MCP protocol and CLI',()=>{
   });
   it('help and version work with no credentials',()=>{
     expect(execFileSync(process.execPath,['dist/cli.js','--help'],{encoding:'utf8'})).toContain('kaiten-mcp-tools');
-    expect(execFileSync(process.execPath,['dist/cli.js','--version'],{encoding:'utf8'})).toBe('0.1.0\n');
+    expect(execFileSync(process.execPath,['dist/cli.js','--version'],{encoding:'utf8'})).toBe(metadata.version+'\n');
   });
 });

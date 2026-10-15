@@ -17,7 +17,7 @@ Node.js **22.15+**, TypeScript, транспорт **stdio**. Работает �
   "mcpServers": {
     "kaiten-mcp-tools": {
       "command": "npx",
-      "args": ["-y", "kaiten-mcp-tools@0.1.0"],
+      "args": ["-y", "kaiten-mcp-tools@0.1.1"],
       "env": {
         "KAITEN_BASE_URL": "https://tasks.company.example",
         "KAITEN_API_TOKEN_FILE": "C:/Users/you/secrets/kaiten.token"
@@ -34,7 +34,7 @@ Node.js **22.15+**, TypeScript, транспорт **stdio**. Работает �
 ```toml
 [mcp_servers.kaiten-mcp-tools]
 command = "npx"
-args = ["-y", "kaiten-mcp-tools@0.1.0"]
+args = ["-y", "kaiten-mcp-tools@0.1.1"]
 
 [mcp_servers.kaiten-mcp-tools.env]
 KAITEN_BASE_URL = "https://tasks.company.example"
@@ -44,11 +44,11 @@ KAITEN_API_TOKEN_FILE = "C:/Users/you/secrets/kaiten.token"
 Перезапустите клиент или обновите соединение MCP. Попросите агента вызвать `get_current_user`, затем `get_card` по ссылке. При запуске сервера вручную он ожидает MCP-сообщения в stdin; отсутствие текста в терминале нормально. Помощь и версия доступны без токена:
 
 ```sh
-npx -y kaiten-mcp-tools@0.1.0 --help
-npx -y kaiten-mcp-tools@0.1.0 --version
+npx -y kaiten-mcp-tools@0.1.1 --help
+npx -y kaiten-mcp-tools@0.1.1 --version
 ```
 
-Офлайн после установки: `npm install -g kaiten-mcp-tools@0.1.0`, затем задайте клиенту команду `kaiten-mcp-tools`. Зависимости публикуются с `npm-shrinkwrap.json`; интерактивных шагов установки нет.
+Офлайн после установки: `npm install -g kaiten-mcp-tools@0.1.1`, затем задайте клиенту команду `kaiten-mcp-tools`. Зависимости публикуются с `npm-shrinkwrap.json`; интерактивных шагов установки нет.
 
 ## Настройки
 
@@ -116,9 +116,9 @@ npm ci
 npm run check
 npm run check:lf
 npm audit --omit=dev
-npm pack
+npm run pack:release
 ```
 
-Сборка очищает только `dist`, чтобы удалённые парсеры не попадали в архив. HTTP-клиент, адаптеры, метаданные файлов и регистрация MCP разделены; зависимости передаются явно. Тесты покрывают все инструменты, GET-only, пагинацию, кеш, ошибки, защищённые оригиналы и настоящий stdio. CI: Windows/Linux, Node.js 22/24. Проверки реального сервиса и их ограничения описаны в [VALIDATION](docs/VALIDATION.md).
+Релизный архив собирается командой `npm run pack:release` во временном каталоге: он содержит только production-зависимости в `npm-shrinkwrap.json`, без devDependencies и npm scripts. Рабочий lockfile разработки сохраняется. Сборка очищает только `dist`, чтобы удалённые парсеры не попадали в архив. HTTP-клиент, адаптеры, метаданные файлов и регистрация MCP разделены; зависимости передаются явно. Тесты покрывают все инструменты, GET-only, пагинацию, кеш, ошибки, защищённые оригиналы и настоящий stdio. CI: Windows/Linux, Node.js 22/24. Проверки реального сервиса и их ограничения описаны в [VALIDATION](docs/VALIDATION.md).
 
 MIT License. [English README](README.en.md).
