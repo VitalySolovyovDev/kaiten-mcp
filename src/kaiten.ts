@@ -5,6 +5,7 @@ import { MetadataCache } from './cache.js';
 import { KaitenError } from './errors.js';
 import { record, records, fingerprint, project, summary, type Data } from './data.js';
 import { toolSpecs, type ToolSpec } from './tools.js';
+import { documentItem, parseDocumentUrl, validateDocument } from './documents.js';
 
 export class KaitenClient {
   readonly files: AttachmentClient;
@@ -21,6 +22,16 @@ export class KaitenClient {
     if (spec.card) {
       if ((a.url !== undefined) === (a.card_id !== undefined)) throw new KaitenError('INPUT_INVALID', 'Provide exactly one of url and card_id.');
       if (a.url !== undefined) a.card_id = parseCardUrl(a.url, this.config);
+    }
+    if (spec.document) {
+      const key = spec.document === 'document' ? 'document_uid' : spec.document === 'document_group' ? 'document_group_uid' : 'parent_entity_uid';
+      if ((a.url !== undefined) === (a[key] !== undefined)) throw new KaitenError('INPUT_INVALID', `Provide exactly one of url and ${key}.`);
+      if (a.url !== undefined) {
+        const parsed = parseDocumentUrl(a.url, this.config);
+        if (spec.document !== 'children' && parsed.kind !== spec.document) throw new KaitenError('DOCUMENT_URL_INVALID', 'The URL refers to a different document entity type.');
+        a[key] = parsed.uid;
+      }
+      if (spec.document === 'document' && a.include_content && a.detail === 'summary') throw new KaitenError('INPUT_INVALID', 'Use detail=full when requesting document content.');
     }
     if (a.from !== undefined || a.to !== undefined) {
       if (a.from === undefined || a.to === undefined || a.from > a.to) throw new KaitenError('INPUT_INVALID', 'Provide both from and to, with from no later than to.');
@@ -100,6 +111,10 @@ export class KaitenClient {
     const validate = (value: unknown) => {
       if (spec.kind === 'entity') {
         const entity = record(value);
+        if (spec.document === 'document' || spec.document === 'document_group') {
+          validateDocument(entity, spec.document, a.document_uid ?? a.document_group_uid);
+          return;
+        }
         if (name === 'get_card' && (typeof entity.title !== 'string' || entity.description !== undefined && entity.description !== null && typeof entity.description !== 'string')) throw new KaitenError('API_RESPONSE_INVALID', 'Card title or description has an incompatible type.');
         const id = name === 'get_sprint' ? entity.id ?? entity.sprint?.id : entity.id;
         if (id === undefined) throw new KaitenError('API_RESPONSE_INVALID', 'Entity response is missing its identifier.');
@@ -112,7 +127,11 @@ export class KaitenClient {
     validate(raw);
     const warnings = name.includes('sprint') ? ['Kaiten marks sprint routes as deprecated; availability depends on the instance.'] : [];
     if (spec.kind === 'entity') {
-      let item = this.normalize(record(raw), name === 'get_card' ? a.card_id : undefined);
+      let source = record(raw);
+      if (name === 'get_document') source = documentItem(source, a);
+      if (name === 'get_document_group') { source = { ...source }; delete source.data; delete source.content; }
+      let item = this.normalize(source, name === 'get_card' ? a.card_id : undefined);
+      if (name === 'get_document' && a.include_content && a.format === 'text') warnings.push('Plain text is a projection. Use format=prosemirror for original nodes, tables and embedded references.');
       if (name === 'get_checklist' && item.card_id !== undefined && String(item.card_id) !== String(a.card_id)) throw new KaitenError('PARENT_MISMATCH', 'Checklist belongs to another card.');
       if (item.attachment_warnings) warnings.push('Some attachment metadata is unavailable; inspect item.attachment_warnings.');
       if (name === 'get_board' || name === 'get_space') { delete item.cards; warnings.push('Cards must be read using list_board_cards or list_space_cards.'); }
@@ -140,6 +159,13 @@ export class KaitenClient {
 
   private listData(raw: unknown, name: string, a: Data): { items: Data[]; metadata?: Data } {
     const checked = (value: unknown): Data[] => records(value).map(item => {
+      if (name === 'list_document_children') {
+        if (!['document','document_group'].includes(item.entity_type)) throw new KaitenError('API_RESPONSE_INVALID', 'Unexpected entity type in document children.');
+        validateDocument(item, item.entity_type, typeof item.uid === 'string' ? item.uid.toLowerCase() : '');
+        if (typeof item.parent_entity_uid !== 'string' || item.parent_entity_uid.toLowerCase() !== a.parent_entity_uid) throw new KaitenError('PARENT_MISMATCH', 'Document child belongs to a different parent.');
+        delete item.data;
+        delete item.content;
+      }
       const identifier = item.id ?? item.uid;
       const groupedTime = name === 'get_timesheet' && ('time_spent' in item || 'timeSpent' in item || 'generalSumTimeSpent' in item);
       if (!groupedTime && !(typeof identifier === 'string' && identifier.length > 0 || typeof identifier === 'number' && Number.isSafeInteger(identifier))) throw new KaitenError('API_RESPONSE_INVALID', 'List record is missing a valid identifier.');

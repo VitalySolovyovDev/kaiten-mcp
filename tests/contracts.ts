@@ -34,4 +34,7 @@ export const contracts = [
   ['get_timesheet',{from:'2026-10-01',to:'2026-10-14',card_ids:[123],user_ids:[1],group_ids:[2],space_ids:[7],board_ids:[8],column_ids:[9],tag_ids:[4],visible_column_ids:[9],group_by:1,with_daily_distribution:1},'time-logs','remote',{from:'2026-10-01',to:'2026-10-14',card_ids:'123',user_ids:'1',group_ids:'2',space_ids:'7',board_ids:'8',column_ids:'9',tag_ids:'4',visible_column_ids:'9',group_by:'1',with_daily_distribution:'1'}],
   ['list_attachments',{card_id:123,comments_offset:50,comments_limit:2},'cards/123/comments','attachments',{offset:'50',limit:'2'}],
   ['download_attachment',{card_id:123,attachment_id:'legacy'},'cards/123','download',{}],
+  ['get_document',{document_uid:'11111111-1111-4111-8111-111111111111'},'documents/11111111-1111-4111-8111-111111111111','entity',{}],
+  ['get_document_group',{document_group_uid:'22222222-2222-4222-8222-222222222222'},'document-groups/22222222-2222-4222-8222-222222222222','entity',{}],
+  ['list_document_children',{parent_entity_uid:'22222222-2222-4222-8222-222222222222'},'tree-entities','remote',{parent_entity_uid:'22222222-2222-4222-8222-222222222222',levels_count:'1'}],
 ] as const;

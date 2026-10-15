@@ -43,6 +43,8 @@ beforeAll(async()=>{
     traffic.push({method:req.method!,path,query:Object.fromEntries(url.searchParams),auth:req.headers.authorization});
     if(failure) return json(res,{token},failure);
     if(incompatible) return json(res,{unexpected:true});
+    if(path.startsWith('documents/') || path.startsWith('document-groups/')) return json(res,{id:21,uid:path.split('/')[1],entity_type:path.startsWith('documents/')?'document':'document_group',title:'Document',extra_field:'full detail',data:{type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Document content'}]}]}});
+    if(path==='tree-entities') return json(res,entries.slice(Number(url.searchParams.get('offset')??0),Number(url.searchParams.get('offset')??0)+Number(url.searchParams.get('limit')??50)).map(item=>({...item,uid:`00000000-0000-4000-8000-${String(item.id).padStart(12,'0')}`,entity_type:'document',parent_entity_uid:url.searchParams.get('parent_entity_uid')})));
     if(path==='redirect/content') {res.writeHead(302,{Location:storage.url+'/original'});return res.end();}
     if(path==='cards/card-uid/files/protected'||path==='cards/card-uid/comments/comment-101/files/comment-file') return json(res,{url:storage.url+'/original?signature=temporary'});
     if(/^cards\/\d+$/.test(path)||/^(?:spaces|boards|sprints)\/\d+$/.test(path)||path==='users/current'||path==='cards/123/checklists/14') return json(res,entity(path));
@@ -55,8 +57,8 @@ afterAll(async()=>{await api?.close();await storage?.close();await rm(directory,
 const config=()=>loadConfig({KAITEN_BASE_URL:api.url,KAITEN_API_TOKEN:token,KAITEN_ALLOW_HTTP:'true',KAITEN_ATTACHMENT_ALLOWED_HOSTS:'127.0.0.1',KAITEN_DOWNLOAD_DIR:directory});
 
 describe('every public tool contract',()=>{
-  it('declares the exact 34 read tools without a generic HTTP or write tool',()=>{
-    expect(toolSpecs.map(t=>t.name)).toEqual(contracts.map(c=>c[0])); expect(toolSpecs).toHaveLength(34);
+  it('declares the exact 37 read tools without a generic HTTP or write tool',()=>{
+    expect(toolSpecs.map(t=>t.name)).toEqual(contracts.map(c=>c[0])); expect(toolSpecs).toHaveLength(37);
   });
   for(const [name,args,path,kind,filters] of contracts) {
     it(`${name}: GET route, filters, normalization, default page and detail`,async()=>{

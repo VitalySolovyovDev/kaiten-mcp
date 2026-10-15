@@ -1,6 +1,6 @@
 # Kaiten MCP Tools
 
-MCP-сервер для чтения карточек, пространств, досок, обсуждений, справочников и учёта времени Kaiten, с получением оригиналов вложений для анализа агентом.
+MCP-сервер для чтения карточек, пространств, досок, обсуждений, документов, справочников и учёта времени Kaiten, с получением оригиналов вложений для анализа агентом.
 
 Node.js **22.15+**, TypeScript, транспорт **stdio**. Работает с любым совместимым MCP-клиентом. Все запросы к Kaiten и файловым серверам выполняются через GET. Сервер не создаёт, не изменяет и не удаляет данные Kaiten.
 
@@ -17,7 +17,7 @@ Node.js **22.15+**, TypeScript, транспорт **stdio**. Работает �
   "mcpServers": {
     "kaiten-mcp-tools": {
       "command": "npx",
-      "args": ["-y", "kaiten-mcp-tools@0.1.1"],
+      "args": ["-y", "kaiten-mcp-tools@0.2.0"],
       "env": {
         "KAITEN_BASE_URL": "https://tasks.company.example",
         "KAITEN_API_TOKEN_FILE": "C:/Users/you/secrets/kaiten.token"
@@ -34,7 +34,7 @@ Node.js **22.15+**, TypeScript, транспорт **stdio**. Работает �
 ```toml
 [mcp_servers.kaiten-mcp-tools]
 command = "npx"
-args = ["-y", "kaiten-mcp-tools@0.1.1"]
+args = ["-y", "kaiten-mcp-tools@0.2.0"]
 
 [mcp_servers.kaiten-mcp-tools.env]
 KAITEN_BASE_URL = "https://tasks.company.example"
@@ -44,11 +44,11 @@ KAITEN_API_TOKEN_FILE = "C:/Users/you/secrets/kaiten.token"
 Перезапустите клиент или обновите соединение MCP. Попросите агента вызвать `get_current_user`, затем `get_card` по ссылке. При запуске сервера вручную он ожидает MCP-сообщения в stdin; отсутствие текста в терминале нормально. Помощь и версия доступны без токена:
 
 ```sh
-npx -y kaiten-mcp-tools@0.1.1 --help
-npx -y kaiten-mcp-tools@0.1.1 --version
+npx -y kaiten-mcp-tools@0.2.0 --help
+npx -y kaiten-mcp-tools@0.2.0 --version
 ```
 
-Офлайн после установки: `npm install -g kaiten-mcp-tools@0.1.1`, затем задайте клиенту команду `kaiten-mcp-tools`. Зависимости публикуются с `npm-shrinkwrap.json`; интерактивных шагов установки нет.
+Офлайн после установки: `npm install -g kaiten-mcp-tools@0.2.0`, затем задайте клиенту команду `kaiten-mcp-tools`. Зависимости публикуются с `npm-shrinkwrap.json`; интерактивных шагов установки нет.
 
 ## Настройки
 
@@ -67,7 +67,7 @@ npx -y kaiten-mcp-tools@0.1.1 --version
 
 ## Инструменты
 
-Доступны 34 отдельных инструмента. Для операций карточки передавайте **ровно один** параметр: `url` или положительный целочисленный `card_id`. Поддерживаются ссылки `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}` и `/space/{space_id}/boards/card/{id}`. Адрес должен совпадать с настроенным Kaiten; query и fragment не влияют на ID.
+Доступны 37 отдельных инструмента. Для операций карточки передавайте **ровно один** параметр: `url` или положительный целочисленный `card_id`. Поддерживаются ссылки `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}` и `/space/{space_id}/boards/card/{id}`. Адрес должен совпадать с настроенным Kaiten; query и fragment не влияют на ID.
 
 - Карточки: `get_card`, `search_cards`, `list_space_cards`, `list_board_cards`, `get_card_location_history`, `list_subtasks`.
 - Обсуждения: `get_card_comments`, `get_checklist`, `list_card_members`, `list_card_blockers`, `list_card_external_links`, `list_card_tags`.
@@ -75,11 +75,30 @@ npx -y kaiten-mcp-tools@0.1.1 --version
 - Пользователи и справочники: `get_current_user`, `list_users`, `list_company_roles`, `list_workspace_tags`, `list_custom_properties`, `list_custom_property_select_values`.
 - Спринты: `list_sprints`, `get_sprint`. Kaiten помечает эти маршруты как deprecated; доступ зависит от версии и прав.
 - Учёт времени: `get_user_timelogs`, `get_card_timelogs`, `get_timesheet`.
+- Документы: `get_document`, `get_document_group`, `list_document_children`.
 - Оригиналы файлов: `list_attachments`, `download_attachment`.
 
 Аргументы каждого инструмента объявлены в MCP input schema. Результат содержит `structuredContent` и такой же JSON в текстовом content. Сущности находятся в `item`, списки — в `items`. Списки по умолчанию `detail: "summary"`, сущности — `"full"`; объём можно выбрать явно. Отсутствующие поля остаются отсутствующими.
 
 `get_card` получает карточку напрямую и не загружает историю комментариев. `description_format` имеет значение `unknown`, если API не указал формат описания; для известных форматов возвращается `markdown` или `html`. Доски/пространства не используются для получения карточек; применяются отдельные маршруты с актуальной пагинацией. `get_checklist` требует `checklist_id` и проверяет принадлежность карточке. Ошибка отдельных метаданных файла перечисляется в `attachment_warnings` и не скрывает текст карточки или комментария.
+
+### Документы Kaiten
+
+Документы раздела Documents читаются отдельно от файловых вложений:
+
+- `get_document`: ровно один из `url` вида `/documents/d/UID` и `document_uid`. По умолчанию возвращает только метаданные, `content_available` и `content_included: false`.
+- `get_document_group`: ровно один из `url` вида `/documents/g/UID` и `document_group_uid`. Возвращает метаданные группы.
+- `list_document_children`: ровно один из `url` документа/группы и `parent_entity_uid`. Возвращает страницу непосредственных дочерних документов и групп. Автоматического рекурсивного обхода нет.
+
+Адреса проверяются по настроенному экземпляру Kaiten, включая корпоративный домен и префикс пути. Текст документа запрашивается явно:
+
+```json
+{"url":"https://example.kaiten.ru/documents/d/11111111-1111-4111-8111-111111111111","include_content":true,"format":"text"}
+```
+
+Текст находится в `item.content`. Для исходной структуры задайте `format: "prosemirror"`: поддерживаются объект ProseMirror и его JSON-строка в API Kaiten. Текстовое представление сохраняет абзацы, списки, ячейки таблиц и ссылки; сложные узлы и их атрибуты доступны в ProseMirror. Длинный текст и массивы читаются через обычные `text_offsets`/`section_offsets` и `continuation`. Для содержимого используйте `detail: "full"` (по умолчанию).
+
+Чтобы только проверить доступность, оставьте `include_content: false`: MCP не возвращает тело документа. API Kaiten может включить `data` в свой GET-ответ; сервер исключает его из ответа MCP. Документы читаются свежими; группы и списки дочерних элементов используют кеш структурных метаданных. Ссылки, изображения и файлы внутри документа автоматически не загружаются и не исполняются.
 
 ### Фильтры и страницы
 

@@ -7,6 +7,7 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => Number.isFinite
 const timestamp = z.string().datetime({ offset: true });
 const text = z.string().min(1).max(1000);
 const card = { url: z.string().url().optional(), card_id: id.optional() };
+const uid = z.string().uuid().transform(value => value.toLowerCase());
 const common = {
   detail: z.enum(['summary', 'full']).optional(),
   text_offsets: z.record(offset).optional().describe('JSON pointer -> character offset. Reuse the same page and all returned text cursors to continue.'),
@@ -41,6 +42,7 @@ export interface ToolSpec {
   path?: (a: Record<string, any>) => string;
   queryKeys?: string[]; paging?: 'remote' | 'local'; cache?: boolean; card?: boolean;
   fixedQuery?: Record<string, string | number>;
+  document?: 'document' | 'document_group' | 'children';
 }
 const specs: ToolSpec[] = [];
 function add(name: string, description: string, fields: z.ZodRawShape, options: Omit<ToolSpec, 'name' | 'description' | 'input'>) {
@@ -97,5 +99,9 @@ list('get_timesheet', 'Read time tracking for a date range with workspace filter
 }, () => 'time-logs', 'remote', false, ['from','to','card_ids','user_ids','group_ids','space_ids','board_ids','column_ids','tag_ids','visible_column_ids','condition','group_by','time_precision','time_unit','with_daily_distribution','only_general_sum']);
 add('list_attachments', 'Read card attachment metadata and one selected page of comment attachments; does not download files. Follow comments_next_offset and pass comments_page_fingerprint as comments_previous_page to inspect more comments safely. Cloud documents are links requiring separate authorization.', { ...card, ...page, include_comments: z.boolean().default(true), comments_offset: offset.default(0), comments_limit: z.number().int().min(1).max(100).default(50), comments_previous_page: page.previous_page }, { kind: 'attachments', card: true });
 add('download_attachment', 'Download only a selected original attached to the supplied card or its accessible comments. Returns an absolute local path, MIME, size, SHA-256 and resource URI. Use your own file tools to read it; no format extraction occurs here.', { ...card, attachment_id: z.string().min(1).max(200) }, { kind: 'download', card: true });
+
+add('get_document', 'Read a native Kaiten document by URL or document_uid. Returns metadata only by default. Set include_content=true to explicitly read bounded text, or format=prosemirror for original structured content. Follow text and section continuation. Does not fetch linked documents or files.', { url: z.string().url().optional(), document_uid: uid.optional(), include_content: z.boolean().default(false), format: z.enum(['text','prosemirror']).default('text') }, { kind: 'entity', document: 'document', path: a => `documents/${a.document_uid}` });
+add('get_document_group', 'Read a native Kaiten document group by URL or document_group_uid. Returns metadata only; use list_document_children to browse its contents.', { url: z.string().url().optional(), document_group_uid: uid.optional() }, { kind: 'entity', document: 'document_group', path: a => `document-groups/${a.document_group_uid}`, cache: true });
+add('list_document_children', 'List one page of immediate children of a Kaiten document or document group, selected by URL or parent_entity_uid. Metadata only, no recursive traversal or content download. Follow next_offset and pass previous_page.', { url: z.string().url().optional(), parent_entity_uid: uid.optional() }, { kind: 'list', document: 'children', path: () => 'tree-entities', paging: 'remote', queryKeys: ['parent_entity_uid'], fixedQuery: { levels_count: 1 }, cache: true });
 
 export const toolSpecs: readonly ToolSpec[] = specs;

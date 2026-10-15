@@ -63,7 +63,7 @@ try {
   } finally {await new Promise(resolve => registry.close(resolve));}
   const cli=join(install,'node_modules','kaiten-mcp-tools','dist','cli.js');
   assert.equal(execFileSync(process.execPath,[cli,'--version'],{encoding:'utf8'}),pkg.version+'\n');
-  assert(execFileSync(process.execPath,[cli,'--help'],{encoding:'utf8'}).includes('Tools (34)'));
+  assert(execFileSync(process.execPath,[cli,'--help'],{encoding:'utf8'}).includes('Tools (37)'));
   const installedLock=JSON.parse(await readFile(join(install,'package-lock.json'),'utf8'));
   const development = JSON.parse(await readFile(join(root,'package.json'),'utf8')).devDependencies;
   for (const name of Object.keys(installedLock.packages)) {
@@ -75,8 +75,8 @@ try {
   }
   const transport=new StdioClientTransport({command:process.execPath,args:[cli],env:{...process.env,KAITEN_BASE_URL:'https://tasks.example',KAITEN_API_TOKEN:'package-test-secret',KAITEN_API_TOKEN_FILE:''},stderr:'pipe'});
   const client=new Client({name:'package-install-test',version:'1'});await client.connect(transport);
-  try {assert.equal((await client.listTools()).tools.length,34);assert.equal((await client.listResourceTemplates()).resourceTemplates.length,1);} finally {await client.close();}
-  console.log(`Package verified: ${pkg.name}@${pkg.version}; ${members.size} files; pinned installation; CLI; stdio; 34 tools`);
+  try {assert.equal((await client.listTools()).tools.length,37);assert.equal((await client.listResourceTemplates()).resourceTemplates.length,1);} finally {await client.close();}
+  console.log(`Package verified: ${pkg.name}@${pkg.version}; ${members.size} files; pinned installation; CLI; stdio; 37 tools`);
 } finally {
   const allowed = relative(resolve(tmpdir()),resolve(temporary));
   if (!allowed || allowed.startsWith('..') || isAbsolute(allowed) || !basename(temporary).startsWith('kaiten-tools-package-')) throw new Error('Unsafe temporary cleanup path');

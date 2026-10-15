@@ -1,7 +1,7 @@
 {
   "name": "kaiten-mcp-tools",
-  "version": "0.1.1",
-  "description": "Read-only MCP server for Kaiten cards, spaces, boards, discussions, catalogs and time tracking, with original attachments for agent analysis",
+  "version": "0.2.0",
+  "description": "Read-only MCP server for Kaiten cards, spaces, boards, discussions, documents, catalogs and time tracking, with original attachments for agent analysis",
   "type": "module",
   "bin": {
     "kaiten-mcp-tools": "dist/cli.js"

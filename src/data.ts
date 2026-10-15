@@ -15,7 +15,7 @@ export function fingerprint(items: Data[]): string {
 }
 const summaryKeys = new Set(['id','uid','title','name','full_name','username','email','value','color','type','state','condition','archived','created','updated','changed','due_date','board_id','space_id','column_id','lane_id','card_id','parent_id','child_id','owner_id','user_id','tag_id','role_id','author_id','time_spent','for_date','comment','text','description','description_format','text_format','author','edited','deleted','internal','url','link','checked','responsible_id','checklist_id','items','size','mime_type','source','protected','external','resource_uri','external_url','comment_id','comment_uid','property_uid','attachments','active','start_date','end_date','blocked','reason','blocker_id','user','child','card']);
 export function summary(item: Data): Data {
-  return Object.fromEntries(Object.entries(item).filter(([key]) => summaryKeys.has(key) || ['update','attachment_warnings','timeSpent','generalSumTimeSpent','total','sum','role','sprint'].includes(key)).map(([key, value]) =>
+  return Object.fromEntries(Object.entries(item).filter(([key]) => summaryKeys.has(key) || ['update','attachment_warnings','timeSpent','generalSumTimeSpent','total','sum','role','sprint','entity_type','parent_entity_uid','has_children','index_document_uid','content_available','content_included','version'].includes(key)).map(([key, value]) =>
     value && typeof value === 'object' && !Array.isArray(value) ? [key, summary(value)] : [key, value]));
 }
 

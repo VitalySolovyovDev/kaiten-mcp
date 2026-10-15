@@ -1,6 +1,6 @@
 # Kaiten MCP Tools
 
-A read-only MCP server for Kaiten cards, spaces, boards, discussions, catalogs and time tracking, with original attachments for agent analysis.
+A read-only MCP server for Kaiten cards, spaces, boards, discussions, documents, catalogs and time tracking, with original attachments for agent analysis.
 
 Node.js **22.15+**, TypeScript, **stdio**, any compatible MCP client. All requests to Kaiten and attachment servers use GET. No tool creates, changes, deletes or uploads Kaiten data. Production dependencies are the official MCP SDK and Zod; files are never interpreted or converted.
 
@@ -15,7 +15,7 @@ Claude Desktop (`claude_desktop_config.json`) and Cursor (`.cursor/mcp.json`):
   "mcpServers": {
     "kaiten-mcp-tools": {
       "command": "npx",
-      "args": ["-y", "kaiten-mcp-tools@0.1.1"],
+      "args": ["-y", "kaiten-mcp-tools@0.2.0"],
       "env": {
         "KAITEN_BASE_URL": "https://tasks.company.example",
         "KAITEN_API_TOKEN_FILE": "C:/Users/you/secrets/kaiten.token"
@@ -32,7 +32,7 @@ Codex (`~/.codex/config.toml`):
 ```toml
 [mcp_servers.kaiten-mcp-tools]
 command = "npx"
-args = ["-y", "kaiten-mcp-tools@0.1.1"]
+args = ["-y", "kaiten-mcp-tools@0.2.0"]
 
 [mcp_servers.kaiten-mcp-tools.env]
 KAITEN_BASE_URL = "https://tasks.company.example"
@@ -42,11 +42,11 @@ KAITEN_API_TOKEN_FILE = "C:/Users/you/secrets/kaiten.token"
 Restart/reconnect the client. Ask your agent to call `get_current_user`, then `get_card` with a link. Starting the server in a terminal waits for MCP messages on stdin; no console output is expected. Help/version do not require credentials:
 
 ```sh
-npx -y kaiten-mcp-tools@0.1.1 --help
-npx -y kaiten-mcp-tools@0.1.1 --version
+npx -y kaiten-mcp-tools@0.2.0 --help
+npx -y kaiten-mcp-tools@0.2.0 --version
 ```
 
-For an installed CLI: `npm install -g kaiten-mcp-tools@0.1.1`, then configure `kaiten-mcp-tools` as the command. Installation is noninteractive. The published `npm-shrinkwrap.json` pins dependencies.
+For an installed CLI: `npm install -g kaiten-mcp-tools@0.2.0`, then configure `kaiten-mcp-tools` as the command. Installation is noninteractive. The published `npm-shrinkwrap.json` pins dependencies.
 
 ## Environment
 
@@ -65,7 +65,7 @@ One process serves one instance and one credential source.
 
 ## Tools
 
-34 separate tools. Card operations require **exactly one** of `url` / positive integer `card_id`. Accepted links: `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}`, `/space/{space_id}/boards/card/{id}`. Origin and deployment prefix must match the configuration. Query/fragment do not affect the ID.
+37 separate tools. Card operations require **exactly one** of `url` / positive integer `card_id`. Accepted links: `/{id}`, `/c/{id}`, `/space/{space_id}/card/{id}`, `/space/{space_id}/boards/card/{id}`. Origin and deployment prefix must match the configuration. Query/fragment do not affect the ID.
 
 - Cards: `get_card`, `search_cards`, `list_space_cards`, `list_board_cards`, `get_card_location_history`, `list_subtasks`.
 - Discussion and related data: `get_card_comments`, `get_checklist`, `list_card_members`, `list_card_blockers`, `list_card_external_links`, `list_card_tags`.
@@ -73,11 +73,30 @@ One process serves one instance and one credential source.
 - Users/catalogs: `get_current_user`, `list_users`, `list_company_roles`, `list_workspace_tags`, `list_custom_properties`, `list_custom_property_select_values`.
 - Sprints: `list_sprints`, `get_sprint` (deprecated Kaiten routes; permissions/version determine availability).
 - Time tracking: `get_user_timelogs`, `get_card_timelogs`, `get_timesheet`.
+- Native documents: `get_document`, `get_document_group`, `list_document_children`.
 - Originals: `list_attachments`, `download_attachment`.
 
 Inputs and outputs have MCP schemas. Successful results contain `structuredContent` plus the same JSON as text content. Entities use `item`, lists use `items`. Lists default to `detail: "summary"`, entities to `"full"`; choose either explicitly. Missing API fields stay absent.
 
 `get_card` directly fetches the card; it does not traverse comments. `description_format` is `unknown` when the API does not supply a format, otherwise `markdown`/`html`. Card lists use the dedicated paginated cards route, not nested board cards. `get_checklist` requires `checklist_id` and verifies its membership using the authoritative card response. Invalid individual attachment metadata is reported in `attachment_warnings` without hiding card/comment text.
+
+### Native Kaiten documents
+
+The Documents section is separate from file attachments:
+
+- `get_document`: exactly one of a `/documents/d/UID` URL and `document_uid`. Metadata only by default, with `content_available` and `content_included: false`.
+- `get_document_group`: exactly one of a `/documents/g/UID` URL and `document_group_uid`. Returns group metadata.
+- `list_document_children`: exactly one of a document/group URL and `parent_entity_uid`. Pages immediate child documents and groups; never traverses recursively.
+
+URLs must match the configured instance and deployment prefix. Request content explicitly:
+
+```json
+{"url":"https://example.kaiten.ru/documents/d/11111111-1111-4111-8111-111111111111","include_content":true,"format":"text"}
+```
+
+Text is returned in `item.content`. Set `format: "prosemirror"` for the original structure; both ProseMirror objects and JSON-serialized API values are supported. The text projection preserves paragraphs, lists, table cells and references; use ProseMirror for complex nodes and attributes. Long fields and arrays use the usual `text_offsets`/`section_offsets` and `continuation`. Content requires `detail: "full"` (the default).
+
+For availability checks, leave `include_content: false`: no document body enters the MCP response. Kaiten's GET response may include `data`; the server excludes it from metadata responses. Documents are read fresh; groups and child lists use the structural metadata cache. Embedded links, images and files are never fetched or executed automatically.
 
 ### Filters and pagination
 
